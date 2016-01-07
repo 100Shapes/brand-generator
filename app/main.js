@@ -20,16 +20,14 @@ const main = ({DOM}) => {
     .map(ev => ev.target.checked)
     .startWith(true);
 
-  const intent = Observable.interval(REFRESH_RATE);
-
   const speed$ = DOM.select('input.speed')
     .events('input')
-    .startWith(1000)
-    .map(value => {
-      refreshInterval.onNext(value);
-    });
+    .map(ev => ev.target.value)
+    .startWith(REFRESH_RATE);
 
-  const model = intent.map(() => {
+  const generate = speed$.debounce(100).flatMapLatest(speed => Observable.interval(speed));
+
+  const model = generate.map(() => {
       return sample(PALETTE, 4);
   });
 
@@ -57,11 +55,11 @@ const main = ({DOM}) => {
         //  checked: shouldPlay
         //}, 'Play?'),
 
-        //h('input.speed', {
-        //  type: 'range',
-        //  min: 200,
-        //  max: 2000
-        //})
+        h('input.speed', {
+          type: 'range',
+          min: 200,
+          max: 2000
+        })
       ])
     }
   );
