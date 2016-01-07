@@ -15,17 +15,27 @@ const main = ({DOM}) => {
     '#FF7D05'
   ];
 
-  const togglePlay$ = DOM.select('input.toggle')
-    .events('change')
-    .map(ev => ev.target.checked)
-    .startWith(true);
-
   const speed$ = DOM.select('input.speed')
     .events('input')
     .map(ev => ev.target.value)
     .startWith(REFRESH_RATE);
 
-  const generate = speed$.debounce(100).flatMapLatest(speed => Observable.interval(speed));
+  const generate = speed$
+    .debounce(100)
+    .flatMapLatest(speed => Observable.interval(speed))
+    .pausable();
+
+  const togglePlay$ = DOM.select('input.toggle')
+    .events('change')
+    .map(ev => ev.target.checked)
+    .startWith(true)
+    .map(shouldRun => {
+      if (shouldRun) {
+        generate.resume();
+      } else {
+        generate.pause();
+      }
+    });
 
   const model = generate.map(() => {
       return sample(PALETTE, 4);
@@ -33,35 +43,34 @@ const main = ({DOM}) => {
 
   const svg = model
     .map(colours => {
-
       const data = {
         colour1: colours[0],
         colour2: colours[1],
         colour3: colours[2],
         colour4: colours[3]
       };
-
       const output = draw(data);
-
       return output;
     });
 
-  const vTree$ = togglePlay$.map(
-    shouldPlay => {
-      return h('div', [
+  const vTree$ = speed$.withLatestFrom(
+    togglePlay$,
+    (speed, shouldPlay) =>
 
-        //h('input.toggle', {
-        //  type: 'checkbox',
-        //  checked: shouldPlay
-        //}, 'Play?'),
+      h('div', [
+
+        h('input.toggle', {
+          type: 'checkbox',
+          checked: shouldPlay
+        }, 'Play?'),
 
         h('input.speed', {
           type: 'range',
+          value: speed,
           min: 200,
           max: 2000
         })
       ])
-    }
   );
 
   return {
