@@ -1,24 +1,33 @@
-import {Observable} from 'rx';
+import {Observable, Subject} from 'rx';
 import Cycle from '@cycle/core';
 import {h, makeDOMDriver} from '@cycle/dom';
 import {sample} from 'lodash';
 import draw from './logoGenerator';
 
-const main = () => {
+const main = ({DOM}) => {
 
-  const REFRESH_RATE = 800;
+  const REFRESH_RATE = 1000;
 
   const PALETTE = [
-    '#fc000',
     '#0038CC',
     '#215CFF',
     '#FFD605',
     '#FF7D05'
   ];
 
-  const intent = Observable.interval(REFRESH_RATE)
-    .startWith(0)
-    .map(i => i+1);
+  const togglePlay$ = DOM.select('input.toggle')
+    .events('change')
+    .map(ev => ev.target.checked)
+    .startWith(true);
+
+  const intent = Observable.interval(REFRESH_RATE);
+
+  const speed$ = DOM.select('input.speed')
+    .events('input')
+    .startWith(1000)
+    .map(value => {
+      refreshInterval.onNext(value);
+    });
 
   const model = intent.map(() => {
       return sample(PALETTE, 4);
@@ -39,13 +48,27 @@ const main = () => {
       return output;
     });
 
-  const DOM = Observable.just(
-    h('button', 'Refresh')
+  const vTree$ = togglePlay$.map(
+    shouldPlay => {
+      return h('div', [
+
+        //h('input.toggle', {
+        //  type: 'checkbox',
+        //  checked: shouldPlay
+        //}, 'Play?'),
+
+        //h('input.speed', {
+        //  type: 'range',
+        //  min: 200,
+        //  max: 2000
+        //})
+      ])
+    }
   );
 
   return {
     svg,
-    DOM
+    DOM: vTree$
   };
 };
 
